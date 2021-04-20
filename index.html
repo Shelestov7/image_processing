@@ -1,0 +1,244 @@
+
+<!DOCTYPE html>
+
+<html lang="en" >
+
+<head>
+  <meta charset="UTF-8">
+  <title>AWS Lambda-ish image processing</title>
+  <style>
+    body {
+     font-family: sans-serif;
+     background-color: #eeeeee;
+   }
+
+   .file-upload {
+     background-color: #ffffff;
+     width: 650px;
+     display: inline;
+     float: left;
+     margin: 10px;
+     padding: 20px;
+   }
+
+   .file-upload-right {
+     float: right;
+   }
+
+   .file-upload-btn {
+     width: 100%;
+     margin: 0;
+     color: #fff;
+     background: #1FB264;
+     border: none;
+     padding: 10px;
+     border-radius: 4px;
+     border-bottom: 4px solid #15824B;
+     transition: all .2s ease;
+     outline: none;
+     text-transform: uppercase;
+     font-weight: 700;
+   }
+
+   .mode-btn {
+     width: 30%;
+     margin-left: 8px;
+     margin-right: 8px;
+   }
+
+   .p {
+       margin-left: 12px;
+       margin-top: 20px;
+       margin-bottom: 10px;
+   }
+
+   .file-upload-btn:hover {
+     background: #1AA059;
+     color: #ffffff;
+     transition: all .2s ease;
+     cursor: pointer;
+   }
+
+   .file-upload-btn:active {
+     border: 0;
+     transition: all .2s ease;
+   }
+
+   .file-upload-content {
+     display: none;
+     text-align: center;
+   }
+
+   .file-upload-input {
+     position: absolute;
+     margin: 0;
+     padding: 0;
+     width: 100%;
+     height: 100%;
+     outline: none;
+     opacity: 0;
+     cursor: pointer;
+   }
+
+   .image-upload-wrap {
+     margin-top: 20px;
+     border: 4px dashed #1FB264;
+     position: relative;
+   }
+
+   .image-dropping,
+   .image-upload-wrap:hover {
+     background-color: #1FB264;
+     border: 4px dashed #ffffff;
+   }
+
+   .image-title-wrap {
+     padding: 0 15px 15px 15px;
+     color: #222;
+   }
+
+   .drag-text {
+     text-align: center;
+   }
+
+   .drag-text h3 {
+     font-weight: 100;
+     text-transform: uppercase;
+     color: #15824B;
+     padding: 60px 0;
+   }
+
+   .file-upload-image {
+     max-height: 600px;
+     max-width: 600px;
+     margin: auto;
+     padding: 20px;
+   }
+
+   .remove-image {
+     width: 200px;
+     margin: 0;
+     color: #fff;
+     background: #cd4535;
+     border: none;
+     padding: 10px;
+     border-radius: 4px;
+     border-bottom: 4px solid #b02818;
+     transition: all .2s ease;
+     outline: none;
+     text-transform: uppercase;
+     font-weight: 700;
+   }
+
+   .remove-image:hover {
+     background: #c13b2a;
+     color: #ffffff;
+     transition: all .2s ease;
+     cursor: pointer;
+   }
+
+   .remove-image:active {
+     border: 0;
+     transition: all .2s ease;
+   }
+  </style>
+</head>
+
+<body>
+  <script class="jsbin" src="https://ajax.googleapis.com/ajax/libs/jquery/1/jquery.min.js"></script>
+
+<table>
+<tr><td>
+		<button class="file-upload-btn mode-btn" type="button" onclick="$('.file-upload-input').trigger( 'click' )">Add Image</button> <button class="file-upload-btn mode-btn" type="button" onclick="serverRequest('face')">Process Image</button>
+</td></tr>
+
+<tr><td>
+	<div class="file-upload">
+	  <div class="image-upload-wrap">
+	    <input class="file-upload-input" type='file' onchange="readURL(this);" accept="image/*" />
+	    <div class="drag-text">
+	      <h3>Drag and drop an Image</h3>
+	    </div>
+	  </div>
+	  <div class="file-upload-content">
+	    <img class="file-upload-image" src="#" alt="your image" />
+	  </div>
+	</div>
+
+	<div class="file-upload">
+	<div class="image-upload-wrap">
+	  <div class="drag-text">
+	    <h3>Enjoy Your Image</h3>
+	  </div>
+	</div>
+	<div class="file-upload-content" id="res">
+	</div>
+	</div>
+</td></tr></table>
+
+   <script type="text/javascript">
+   var dataURL;
+   var server = "https://reh4diaqd5.execute-api.us-east-2.amazonaws.com/enhance_image_py2";
+
+   function readURL(input) {
+     $('#res img:last-child').remove();
+     if (input.files && input.files[0]) {
+
+       var reader = new FileReader();
+       reader.onload = function(e) {
+         $('.image-upload-wrap').hide();
+
+         $('.file-upload-image').attr('src', e.target.result);
+         $('.file-upload-content').show();
+
+         $('.image-title').html(input.files[0].name);
+         dataURL = reader.result;
+         $('#mode').show();
+       };
+       reader.readAsDataURL(input.files[0]);
+     } else {
+       removeUpload();
+     }
+   }
+
+   function removeUpload() {
+     $('.file-upload-input').replaceWith($('.file-upload-input').clone());
+     $('.file-upload-content').hide();
+     $('.image-upload-wrap').show();
+     $('#mode').hide();
+     $('#res img:last-child').remove();
+   }
+
+
+   $('.image-upload-wrap').bind('dragover', function () {
+      $('.image-upload-wrap').addClass('image-dropping');
+   });
+   $('.image-upload-wrap').bind('dragleave', function () {
+      $('.image-upload-wrap').removeClass('image-dropping');
+   });
+
+   function serverRequest() {
+   	alert(dataURL)
+     $.ajax({
+       type: 'POST',
+       url: server,
+       crossDomain: true,
+       data: dataURL,
+       dataType: 'json',
+       success: function(data) {
+            $("<img>", {
+            "src": "data:image/jpeg;base64," + data['data'],
+            "class": "file-upload-image"
+            }).appendTo("#res")
+        },
+        error: function(jqXHR, textStatus, errorThrown){
+          console.log('error')
+          console.log(jqXHR)
+          console.log(textStatus)
+          console.log(errorThrown)
+       }
+     })
+   }
+  </script>
+</body>
+</html>
